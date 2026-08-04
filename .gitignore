@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment
+.env
+.env.local
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Playwright
+playwright-report/
+test-results/
+.playwright/
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Python (future scripts)
+python/__pycache__/
+python/.venv/
+python/*.pyc
+*.egg-info/
+
+# TypeScript
+*.tsbuildinfo
+
+
+package-lock.json

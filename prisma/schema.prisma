@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  title       String
+  company     String
+  location    String?
+  description String?   @db.Text
+  salary      String?
+  url         String
+  source      String
+  externalId  String?   @map("external_id")
+  postedAt    DateTime? @map("posted_at")
+  scrapedAt   DateTime  @map("scraped_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@unique([source, url], name: "source_url")
+  @@index([source])
+  @@index([scrapedAt])
+  @@map("jobs")
+}

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Job Match Scraper</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="toolbar">
+        <div>
+          <p class="eyebrow">Career Intelligence</p>
+          <h1>Job Match Scraper</h1>
+        </div>
+        <div class="actions">
+          <button id="startButton">Start</button>
+          <button id="stopButton" class="secondary" disabled>Stop</button>
+        </div>
+      </section>
+
+      <section class="grid">
+        <form id="searchForm" class="panel">
+          <h2>Search Criteria</h2>
+          <label>
+            Company CSV
+            <input id="csvFile" type="file" accept=".csv,text/csv" required />
+          </label>
+          <label>
+            Roles
+            <input id="roles" placeholder="Backend Engineer, Python Developer" />
+          </label>
+          <label>
+            Skills
+            <input id="skills" placeholder="Python, TypeScript, Playwright, PostgreSQL" />
+          </label>
+          <label>
+            Locations
+            <input id="locations" placeholder="Remote, Pune, Bengaluru" />
+          </label>
+          <div class="two">
+            <label>
+              Experience
+              <input id="experience" placeholder="3 years" />
+            </label>
+            <label>
+              Minimum Match %
+              <input id="minimumMatch" type="number" min="0" max="100" value="70" />
+            </label>
+          </div>
+          <label class="check">
+            <input id="remote" type="checkbox" />
+            Remote only
+          </label>
+        </form>
+
+        <section class="panel">
+          <h2>Dashboard</h2>
+          <div class="stats">
+            <article><span id="companiesProcessed">0</span><small>Companies</small></article>
+            <article><span id="jobsFound">0</span><small>Jobs Found</small></article>
+            <article><span id="matchedJobs">0</span><small>Matched</small></article>
+            <article><span id="successes">0</span><small>Success</small></article>
+            <article><span id="failures">0</span><small>Failures</small></article>
+            <article><span id="durationMs">0ms</span><small>Time</small></article>
+          </div>
+          <h2>Live Logs</h2>
+          <pre id="logs" class="logs">Waiting to start...</pre>
+        </section>
+      </section>
+
+      <section class="panel results-panel">
+        <div class="results-header">
+          <h2>Matched Jobs</h2>
+          <div class="actions">
+            <input id="tableSearch" placeholder="Search results" />
+            <button id="exportCsv" class="secondary" disabled>CSV</button>
+            <button id="exportExcel" class="secondary" disabled>Excel</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-sort="company">Company</th>
+                <th data-sort="title">Job Title</th>
+                <th data-sort="matchPercentage">Match</th>
+                <th>Skills</th>
+                <th data-sort="location">Location</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button id="prevPage" class="secondary">Prev</button>
+          <span id="pageLabel">Page 1</span>
+          <button id="nextPage" class="secondary">Next</button>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="jobModal">
+      <article>
+        <button id="closeModal" class="icon">x</button>
+        <h2 id="modalTitle"></h2>
+        <p id="modalMeta"></p>
+        <p id="modalScore"></p>
+        <p id="modalSkills"></p>
+        <p id="modalDescription"></p>
+        <a id="modalLink" target="_blank" rel="noreferrer">Open job</a>
+      </article>
+    </dialog>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
