@@ -4,8 +4,11 @@ import {
   type BrowserContextOptions,
   type Page,
 } from 'playwright';
+import fs from 'fs';
+import path from 'path';
 import { getConfig } from '../config/config.js';
 import { createLogger } from '../logging/logger.js';
+import { ReliableExecutor } from '../scraping/reliable-executor.js';
 
 const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -49,7 +52,21 @@ export class BrowserManager {
     page.setDefaultTimeout(config.playwright.timeoutMs);
     page.setDefaultNavigationTimeout(config.playwright.timeoutMs);
 
-    this.logger.debug('Created new browser page');
+    // Intercept page.goto to wrap with ReliableExecutor
+    const originalGoto = page.goto.bind(page);
+    page.goto = async (url: string, options?: any) => {
+      let domain = 'default';
+      try {
+        domain = new URL(url).hostname;
+      } catch {
+        // ignore url parse failures
+      }
+      return ReliableExecutor.execute(domain, async () => {
+        return await originalGoto(url, options);
+      });
+    };
+
+    this.logger.debug('Created new browser page with reliability wrappers');
 
     return page;
   }
@@ -73,6 +90,20 @@ export class BrowserManager {
 
     try {
       return await fn(page);
+    } catch (err) {
+      try {
+        const screenshotDir = path.join(process.cwd(), 'screenshots');
+        if (!fs.existsSync(screenshotDir)) {
+          fs.mkdirSync(screenshotDir, { recursive: true });
+        }
+        const filename = `failure-${Date.now()}.png`;
+        const screenshotPath = path.join(screenshotDir, filename);
+        await page.screenshot({ path: screenshotPath, fullPage: true });
+        this.logger.error({ screenshotPath }, 'Saved screenshot of scraper failure');
+      } catch (screenshotErr) {
+        this.logger.warn({ err: screenshotErr }, 'Failed to take failure screenshot');
+      }
+      throw err;
     } finally {
       await this.closePage(page);
     }

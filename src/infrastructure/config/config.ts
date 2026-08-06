@@ -33,6 +33,38 @@ const configSchema = z.object({
     experienceWeight: z.coerce.number().min(0).default(0.15),
     locationWeight: z.coerce.number().min(0).default(0.15),
   }),
+  apify: z.object({
+    token: z.string().optional(),
+    actorMapping: z
+      .string()
+      .default('{}')
+      .transform((val) => {
+        if (!val) {
+          return {};
+        }
+        try {
+          return JSON.parse(val) as Record<string, string>;
+        } catch {
+          const mapping: Record<string, string> = {};
+          val.split(/[;,]/).forEach((pair) => {
+            const [k, v] = pair.split('=').map((s) => s.trim());
+            if (k && v) {
+              mapping[k] = v;
+            }
+          });
+          return mapping;
+        }
+      }),
+  }),
+  crawlee: z.object({
+    crawlerType: z.enum(['cheerio', 'playwright']).default('playwright'),
+    proxyUrl: z.string().optional(),
+    maxConcurrency: z.coerce.number().int().positive().default(5),
+    maxRetries: z.coerce.number().int().nonnegative().default(3),
+  }),
+  scraper: z.object({
+    concurrency: z.coerce.number().int().min(1).max(20).default(2),
+  }),
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -62,6 +94,19 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       skillsWeight: env.MATCH_SKILLS_WEIGHT,
       experienceWeight: env.MATCH_EXPERIENCE_WEIGHT,
       locationWeight: env.MATCH_LOCATION_WEIGHT,
+    },
+    apify: {
+      token: env.APIFY_TOKEN,
+      actorMapping: env.APIFY_ACTOR_MAPPING,
+    },
+    crawlee: {
+      crawlerType: env.CRAWLEE_CRAWLER_TYPE as any,
+      proxyUrl: env.PROXY_URL,
+      maxConcurrency: env.CRAWLEE_MAX_CONCURRENCY,
+      maxRetries: env.CRAWLEE_MAX_RETRIES,
+    },
+    scraper: {
+      concurrency: env.SCRAPER_CONCURRENCY,
     },
   });
 

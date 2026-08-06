@@ -1,304 +1,505 @@
 # Job Scraper Platform
 
-MVP foundation for a scalable job scraping platform built with Node.js, TypeScript, Playwright, Prisma, and PostgreSQL.
+> **AI Maintenance Rules — Single Source of Truth**
+>
+> Before making any code changes: read this entire document, understand the architecture,
+> and preserve documented decisions unless explicitly instructed otherwise.
+> After any implementation, update **only the affected sections** and append a Progress Log entry.
 
-## Project Structure
+---
+
+## Project Overview
+
+MVP foundation for a scalable job scraping platform built with Node.js, TypeScript, Playwright,
+Prisma, and PostgreSQL. The platform supports multiple concurrent scraping strategies:
+ATS API adapters → Apify Actors → Crawlee crawlers → direct Playwright automation.
+
+---
+
+## Folder Structure
 
 ```
 job-scraper-platform/
 ├── src/
-│   ├── api/                    # HTTP layer (Express routes & middleware)
-│   │   ├── routes/             # Route handlers
-│   │   └── middleware/         # Error handling, request logging
-│   ├── application/            # Use cases & orchestration
-│   │   ├── scraper-runner.ts   # Executes one or more scrapers
-│   │   ├── job-match-service.ts
-│   │   ├── job-matching-engine.ts
-│   │   └── ports/              # Interfaces owned by the application layer
-│   ├── domain/                 # Core business logic (no external deps)
-│   │   ├── models/             # Job and other domain types
-│   │   ├── scrapers/           # BaseScraper abstract class & registry
-│   │   └── errors/             # Domain/application error types
-│   ├── infrastructure/         # External integrations
-│   │   ├── browser/            # Playwright browser manager
-│   │   ├── config/             # Environment configuration
-│   │   ├── database/           # Prisma client & repositories
-│   │   ├── scraping/           # ATS API adapters
-│   │   └── logging/            # Structured logging (pino)
-│   ├── scrapers/               # Site-specific scraper implementations
-│   │   ├── company-career-page-scraper.ts
-│   │   └── sample-jobs-scraper.ts
-│   ├── composition-root.ts     # Dependency wiring
-│   └── main.ts                 # Application entry point
+│   ├── api/                              # HTTP layer (Express routes & middleware)
+│   │   ├── routes/
+│   │   │   ├── scrape-routes.ts          # POST /scrape
+│   │   │   ├── match-routes.ts           # /match/runs/*
+│   │   │   └── job-routes.ts             # GET /jobs, /jobs/:id
+│   │   ├── middleware/
+│   │   │   ├── error-handler.ts
+│   │   │   ├── async-handler.ts
+│   │   │   └── request-logger.ts
+│   │   └── app.ts
+│   │
+│   ├── application/                      # Use cases & orchestration
+│   │   ├── scraper-runner.ts             # Worker pool, queue, events, cancellation
+│   │   ├── job-match-service.ts          # CSV-driven company matching run
+│   │   ├── job-matching-engine.ts        # Weighted scoring engine
+│   │   ├── job-match-run-manager.ts      # Run lifecycle manager
+│   │   ├── export/
+│   │   │   └── matched-jobs-exporter.ts  # CSV / XLS export
+│   │   └── ports/
+│   │       └── job-repository.ts         # Repository interface (port)
+│   │
+│   ├── domain/                           # Core business logic — no external deps
+│   │   ├── models/
+│   │   │   ├── job.ts                    # Job & CreateJobInput interfaces + factory
+│   │   │   ├── job-normalizer.ts         # *** NEW *** Normalizes all scraper outputs
+│   │   │   └── company-career-page.ts
+│   │   ├── scrapers/
+│   │   │   ├── base-scraper.ts           # Abstract base; buildJob auto-normalizes
+│   │   │   └── scraper-registry.ts       # Name → BaseScraper registry
+│   │   └── errors/
+│   │       └── app-error.ts
+│   │
+│   ├── infrastructure/                   # External integrations
+│   │   ├── browser/
+│   │   │   └── browser-manager.ts        # Playwright browser pool + screenshot-on-failure
+│   │   ├── config/
+│   │   │   └── config.ts                 # Zod-validated env config (all sections)
+│   │   ├── database/
+│   │   │   ├── prisma-client.ts
+│   │   │   ├── prisma-job-repository.ts
+│   │   │   ├── in-memory-job-repository.ts
+│   │   │   └── job-mapper.ts
+│   │   ├── logging/
+│   │   │   └── logger.ts                 # Pino structured logging factory
+│   │   ├── scraping/
+│   │   │   ├── ats-job-source.ts         # Greenhouse, Lever, Workday, Ashby adapters
+│   │   │   └── reliable-executor.ts      # *** NEW *** Retry/rate-limit/circuit-breaker/metrics
+│   │   ├── apify/                        # *** NEW *** Apify SDK wrappers
+│   │   │   ├── config.ts                 # Reads APIFY_TOKEN from central config
+│   │   │   ├── apify-client.ts           # Lazy-initialized ApifyClient singleton
+│   │   │   ├── actor-runner.ts           # Run actors, return ActorRunResult
+│   │   │   ├── dataset-reader.ts         # Read dataset items after actor run
+│   │   │   ├── request-queue.ts          # Create/push/delete remote request queues
+│   │   │   └── index.ts                  # Re-exports + singleton getters
+│   │   └── crawlee/                      # *** NEW *** Crawlee crawler wrappers
+│   │       ├── crawlee-runner.ts         # PlaywrightCrawler / CheerioCrawler + pool/proxy/retry
+│   │       └── index.ts                  # Re-exports + singleton getter
+│   │
+│   ├── scrapers/                         # Site-specific implementations
+│   │   ├── company-career-page-scraper.ts # ATS → Apify → Crawlee → Playwright pipeline
+│   │   ├── sample-jobs-scraper.ts         # Deterministic scraper for local testing
+│   │   └── index.ts                       # Factory: createScrapers()
+│   │
+│   ├── composition-root.ts               # Dependency wiring (unchanged)
+│   └── main.ts                           # Entry point
+│
 ├── prisma/
-│   └── schema.prisma           # Database schema
-├── public/                     # Web UI
-├── python/                     # Optional Python scripts for complex sites
-├── .env.example                # Environment variable template
+│   └── schema.prisma
+├── public/                               # Web UI (static)
+├── python/                               # Optional Python scripts
+├── screenshots/                          # *** NEW *** Failure screenshots (auto-created)
+├── .env.example
 ├── package.json
 └── tsconfig.json
 ```
 
+---
+
 ## Layer Responsibilities
 
 | Layer | Folder | Purpose |
-|-------|--------|---------|
-| API | `src/api/` | HTTP concerns only — parses requests, returns responses |
-| Application | `src/application/` | Orchestrates domain + infrastructure for use cases |
+|---|---|---|
+| API | `src/api/` | HTTP only — parse requests, return responses |
+| Application | `src/application/` | Orchestrate domain + infrastructure for use cases |
 | Domain | `src/domain/` | Pure business rules, models, scraper contracts |
-| Infrastructure | `src/infrastructure/` | Playwright, Prisma, config, logging |
+| Infrastructure | `src/infrastructure/` | Playwright, Prisma, Apify, Crawlee, config, logging |
 | Scrapers | `src/scrapers/` | Pluggable site-specific implementations |
 
-## API
+---
+
+## API Endpoints
 
 | Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Basic service health check |
-| POST | `/scrape` | Runs all registered scrapers or selected scrapers from `{ "scrapers": ["sample-jobs"] }` |
-| GET | `/jobs` | Lists persisted jobs with optional `source`, `page`, and `pageSize` query params |
-| GET | `/jobs/:id` | Returns one persisted job by id |
-| POST | `/match/runs` | Starts a CSV-driven company scrape and matching run |
-| GET | `/match/runs/:id` | Reads run status, logs, dashboard metrics, and matched jobs |
-| POST | `/match/runs/:id/stop` | Requests cancellation for an active run |
-| GET | `/match/runs/:id/export.csv` | Exports matched jobs as CSV |
-| GET | `/match/runs/:id/export.xls` | Exports matched jobs as Excel-compatible HTML |
+|---|---|---|
+| GET | `/health` | Health check |
+| POST | `/scrape` | Run registered scrapers (`{ "scrapers": ["name"] }` optional) |
+| GET | `/jobs` | List persisted jobs (`source`, `page`, `pageSize` params) |
+| GET | `/jobs/:id` | Get one job by id |
+| POST | `/match/runs` | Start a CSV-driven company scrape + matching run |
+| GET | `/match/runs/:id` | Read run status, logs, metrics, matched jobs |
+| POST | `/match/runs/:id/stop` | Cancel an active run |
+| GET | `/match/runs/:id/export.csv` | Export matched jobs as CSV |
+| GET | `/match/runs/:id/export.xls` | Export matched jobs as Excel-compatible HTML |
 
-## Matching Flow
+---
 
-The web UI is available at `/`. Upload a CSV with `company,url` columns, enter roles, skills, locations, experience, and minimum match percentage, then start a matching run.
+## Implemented Features
 
-The company career scraper detects Greenhouse, Lever, Workday, and Ashby URLs and uses their public APIs first. If no supported ATS API is detected, it falls back to browser scraping through the existing Playwright `BrowserManager`.
+### Core Scraping
+- [x] `BaseScraper` abstract class with `run()` / `scrape()` / `buildJob()` lifecycle
+- [x] `ScraperRegistry` for name-based scraper resolution
+- [x] `SampleJobsScraper` for deterministic local testing
+- [x] `CompanyCareerPageScraper` — tiered multi-strategy scraper
 
-Matching scores role, skills, experience, and location independently, then combines them with configurable weights:
+### ATS API Adapters
+- [x] `GreenhouseJobSource` — boards-api.greenhouse.io
+- [x] `LeverJobSource` — api.lever.co
+- [x] `AshbyJobSource` — api.ashbyhq.com
+- [x] `WorkdayJobSource` — `myworkdayjobs.com` CXS API
+
+### Apify Integration
+- [x] `ApifyClient` wrapper with lazy initialization
+- [x] `ActorRunner` — trigger actors, collect `ActorRunResult`
+- [x] `DatasetReader` — fetch dataset items post-run
+- [x] `RequestQueue` — create/push/delete remote request queues
+- [x] `Configuration` — reads `APIFY_TOKEN` and `APIFY_ACTOR_MAPPING` from central config
+- [x] Singleton getters: `getApifyClient()`, `getActorRunner()`, `getDatasetReader()`
+- [x] `CompanyCareerPageScraper` tries configured actor (by company name or domain) before Crawlee
+
+### Crawlee Integration
+- [x] `CrawleeRunner` wrapping `PlaywrightCrawler` / `CheerioCrawler`
+- [x] Session pool (maxPoolSize 50), proxy support, concurrency, retry config
+- [x] Singleton getter `getCrawleeRunner()`
+- [x] `CompanyCareerPageScraper` falls back to Crawlee when no ATS or Actor matches
+
+### Job Normalization
+- [x] `JobNormalizer` static class normalizing all scraper outputs
+  - Title: emoji removal, whitespace collapse
+  - Company: legal suffix stripping (LLC, Inc, Corp…)
+  - URL: absolute URL validation
+  - Description: HTML tag stripping
+  - Location: capitalize, "Remote" standardization
+  - Remote: auto-detected from location / description keywords
+  - Employment type: detected and mapped to Full-time / Part-time / Contract / Internship
+  - Skills: extracted from 40-entry keyword list (TypeScript, React, AWS, etc.)
+  - Experience: regex extraction of year requirements
+- [x] `BaseScraper.buildJob()` automatically routes through `JobNormalizer` — all scrapers normalized at one boundary
+- [x] `Job` and `CreateJobInput` extended with `remote`, `employmentType`, `skills`, `experience`
+- [x] `JobMatchingEngine` uses pre-normalized `skills[]` and `experience` fields when available
+
+### Scraping Reliability (`ReliableExecutor`)
+- [x] Exponential backoff retry (3 retries, ×2 factor, 1 s base delay)
+- [x] Domain-based rate limiter (1.5 s default inter-request interval)
+- [x] Circuit breaker per domain: CLOSED → OPEN after 3 consecutive failures, 30 s cooldown, HALF_OPEN probe
+- [x] Outer timeout enforcement (45 s default)
+- [x] Pino metrics: heap memory before/after, execution duration, dataset size
+- [x] `BrowserManager.createPage()` intercepts `page.goto()` to route through `ReliableExecutor` automatically
+- [x] `BrowserManager.withPage()` captures a full-page screenshot on failure → `screenshots/failure-<ts>.png`
+
+### ScraperRunner Concurrency
+- [x] Configurable worker pool driven by `SCRAPER_CONCURRENCY` (env, default 2, max 20)
+- [x] `ScraperQueue` — safe pop queue (copy-on-create, never mutates registry)
+- [x] N concurrent workers via `Promise.all`, each draining the queue
+- [x] `AbortSignal`-based cancellation — workers stop between scrapers; in-flight scrape completes cleanly
+- [x] `EventEmitter` progress surface (`runner.events`):
+  - `scraper:start` → `{ scraperName, completed, total }`
+  - `scraper:done` → `{ result: ScraperRunResult, completed, total }`
+  - `scraper:fail` → `{ scraperName, error, completed, total }`
+  - `run:complete` → `{ result: ScrapeRunResult }`
+
+### Matching & Export
+- [x] Weighted scoring engine: role, skills, experience, location
+- [x] Match weights configurable via env
+- [x] CSV upload: `company,url` column headers (or headerless)
+- [x] Supports Greenhouse, Lever, Workday, Ashby URLs automatically
+- [x] Remote-only filter
+- [x] Stop/cancel active matching run
+- [x] Export matched jobs as CSV or Excel-compatible HTML
+
+---
+
+## Scraping Pipeline Execution Order
+
+For each company career page URL in a match run, or each registered scraper in a scrape run:
 
 ```
-MATCH_ROLE_WEIGHT=0.35
-MATCH_SKILLS_WEIGHT=0.35
-MATCH_EXPERIENCE_WEIGHT=0.15
-MATCH_LOCATION_WEIGHT=0.15
+1. ATS API Check
+   └─ Does the URL match Greenhouse / Lever / Workday / Ashby?
+      ├─ YES → fetch via ATS adapter (no browser needed) → normalize → return jobs
+      └─ NO  ↓
+
+2. Apify Actor Check (CompanyCareerPageScraper only)
+   └─ Does APIFY_ACTOR_MAPPING contain this company name or domain?
+      ├─ YES → ActorRunner.run(actorId, { startUrls }) → DatasetReader.readItems()
+      │         → normalize → return jobs
+      │         → on failure: log error, fall through to step 3
+      └─ NO  ↓
+
+3. Crawlee Fallback (CompanyCareerPageScraper only)
+   └─ CrawleeRunner.crawl(url, extractor)
+      ├─ CRAWLEE_CRAWLER_TYPE=playwright → PlaywrightCrawler
+      ├─ CRAWLEE_CRAWLER_TYPE=cheerio   → CheerioCrawler
+      │  → normalize → return jobs if found
+      │  → on failure: log error, fall through to step 4
+      └─ NO JOBS / FAILURE ↓
+
+4. Direct Playwright Fallback
+   └─ BrowserManager.withPage() → page.goto() [wrapped in ReliableExecutor]
+      → DOM card extraction → link extraction → normalize → return jobs
+      → on failure: screenshot saved to screenshots/failure-<ts>.png
+
+All job outputs pass through BaseScraper.buildJob() → JobNormalizer.normalize()
 ```
 
-## Getting Started
+---
 
-### 1. Install Dependencies
+## Architecture Decisions
 
+| ID | Decision | Rationale |
+|---|---|---|
+| AD-1 | Domain layer has zero external deps | Keeps business logic testable and portable |
+| AD-2 | `BaseScraper.buildJob()` is the normalization boundary | Single place to enforce Job domain integrity across all scrapers |
+| AD-3 | `BrowserManager.createPage()` intercepts `page.goto()` | Applies reliability (rate limit, retry, circuit breaker) transparently without touching scraper code |
+| AD-4 | Apify infra uses lazy singletons | Avoids SDK init cost and config parsing on every request |
+| AD-5 | `ScraperQueue` copies scrapers on construction | Workers never mutate the registry; re-runs are safe |
+| AD-6 | `AbortSignal` checked between scrapers, not mid-scraper | Ensures the repository stays consistent; no partial job saves |
+| AD-7 | `JobNormalizer.normalize()` is idempotent | Can be called multiple times without drift |
+| AD-8 | Circuit breaker is per-domain, not global | One broken site does not halt scraping of all others |
+
+---
+
+## Environment Variables
+
+### Core
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | *(required)* | PostgreSQL connection string |
+| `PORT` | `3000` | HTTP server port |
+| `NODE_ENV` | `development` | `development` / `production` / `test` |
+| `LOG_LEVEL` | `info` | Pino log level |
+
+### Playwright
+| Variable | Default | Description |
+|---|---|---|
+| `PLAYWRIGHT_HEADLESS` | `true` | Run Chromium headless |
+| `PLAYWRIGHT_TIMEOUT_MS` | `30000` | Default page/navigation timeout |
+
+### Matching
+| Variable | Default | Description |
+|---|---|---|
+| `MATCH_ROLE_WEIGHT` | `0.35` | Scoring weight for role match |
+| `MATCH_SKILLS_WEIGHT` | `0.35` | Scoring weight for skills match |
+| `MATCH_EXPERIENCE_WEIGHT` | `0.15` | Scoring weight for experience match |
+| `MATCH_LOCATION_WEIGHT` | `0.15` | Scoring weight for location match |
+
+### Apify
+| Variable | Default | Description |
+|---|---|---|
+| `APIFY_TOKEN` | *(optional)* | Apify API token — required only when actors are mapped |
+| `APIFY_ACTOR_MAPPING` | `{}` | JSON or `key=value,…` mapping company names / domains to Actor IDs |
+
+Examples:
 ```bash
-npm install
+APIFY_ACTOR_MAPPING='{"acme":"apify/web-scraper","example.com":"apify/web-scraper"}'
+APIFY_ACTOR_MAPPING='acme=apify/web-scraper,example.com=apify/web-scraper'
 ```
 
-If Playwright browsers are not installed yet, install Chromium:
+### Crawlee
+| Variable | Default | Description |
+|---|---|---|
+| `CRAWLEE_CRAWLER_TYPE` | `playwright` | `playwright` or `cheerio` |
+| `CRAWLEE_MAX_CONCURRENCY` | `5` | Max parallel Crawlee requests |
+| `CRAWLEE_MAX_RETRIES` | `3` | Max retries inside Crawlee crawler |
+| `PROXY_URL` | *(optional)* | HTTP proxy for Crawlee requests |
 
-```bash
-npx playwright install chromium
+### Scraper Concurrency
+| Variable | Default | Description |
+|---|---|---|
+| `SCRAPER_CONCURRENCY` | `2` | Max scrapers running in parallel (1–20) |
+
+---
+
+## Dependency Injection (composition-root.ts)
+
+```
+PrismaJobRepository
+BrowserManager (singleton via getBrowserManager())
+ScraperRegistry ← createScrapers() [SampleJobsScraper, ...]
+
+ScraperRunner(registry, browserManager, jobRepository)
+  └─ runner.events  ← EventEmitter (subscribe externally for progress)
+
+JobMatchingEngine()
+JobMatchService(browserManager, jobRepository, matchingEngine)
+JobMatchRunManager(jobMatchService)
+
+createApp({ jobRepository, scraperRunner, jobMatchRunManager })
 ```
 
-### 2. Configure Environment
+Apify and Crawlee singletons are resolved on-demand inside scraper methods:
+- `getActorRunner()` / `getDatasetReader()` → via `src/infrastructure/apify/index.ts`
+- `getCrawleeRunner()` → via `src/infrastructure/crawlee/index.ts`
 
-Create a local `.env` file from the example:
+---
 
-```bash
-cp .env.example .env
-```
+## TODO Roadmap
 
-Update `DATABASE_URL` in `.env`:
+### High Priority
+- [ ] Add unit tests for `JobNormalizer` (edge cases: emojis, non-ASCII, HTML entities)
+- [ ] Add unit tests for `ReliableExecutor` (retry, circuit breaker state machine)
+- [ ] Add integration test for `CompanyCareerPageScraper` fallback chain
+- [ ] Persist `remote`, `employmentType`, `skills`, `experience` to the database (Prisma schema migration required)
 
-```bash
-DATABASE_URL=postgresql://user:password@localhost:5432/job_scraper
-PORT=3000
-PLAYWRIGHT_HEADLESS=true
-PLAYWRIGHT_TIMEOUT_MS=30000
-LOG_LEVEL=info
-MATCH_ROLE_WEIGHT=0.35
-MATCH_SKILLS_WEIGHT=0.35
-MATCH_EXPERIENCE_WEIGHT=0.15
-MATCH_LOCATION_WEIGHT=0.15
-```
+### Medium Priority
+- [ ] Expose `runner.events` via SSE endpoint (`GET /scrape/events`) for live UI progress
+- [ ] Add `POST /scrape` cancellation endpoint using `AbortController`
+- [ ] Add `GET /scrape/status` to query current in-progress run state
+- [ ] Add retry-count metric to `ScraperRunResult`
+- [ ] Screenshot cleanup policy (keep last N, delete older files)
+- [ ] Support multiple proxies with round-robin for Crawlee
 
-### 3. Run PostgreSQL
+### Low Priority
+- [ ] Support custom Crawlee router rules per domain
+- [ ] Add Apify Actor caching (skip re-run if dataset is fresh within TTL)
+- [ ] Python scraper bridge integration (`python/` directory)
+- [ ] Scraper plugin system (load scrapers from external packages)
+- [ ] Admin UI for circuit breaker state and rate limiter status
 
-Use any local PostgreSQL database. For example, with Docker:
+---
 
-```bash
-docker run --name job-scraper-postgres \
-  -e POSTGRES_USER=user \
-  -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_DB=job_scraper \
-  -p 5432:5432 \
-  -d postgres:16
-```
+## Progress Log
 
-If the container already exists, start it again:
+### 2026-08-07
 
-```bash
-docker start job-scraper-postgres
-```
+---
 
-### 4. Apply Database Schema
+**Feature:** Apify SDK Infrastructure Layer
 
-Generate the Prisma client:
+**Files Added:**
+- `src/infrastructure/apify/config.ts`
+- `src/infrastructure/apify/apify-client.ts`
+- `src/infrastructure/apify/actor-runner.ts`
+- `src/infrastructure/apify/dataset-reader.ts`
+- `src/infrastructure/apify/request-queue.ts`
+- `src/infrastructure/apify/index.ts`
 
-```bash
-npm run db:generate
-```
+**Files Modified:**
+- `package.json` (added `apify-client` dependency)
 
-Apply the schema to the database:
+**Architecture Impact:**
+New infrastructure module. No existing code changed.
 
-```bash
-npm run db:push
-```
+**Environment Changes:**
+None (token and mapping wired in subsequent task).
 
-For migration-based development, use:
+**Notes:**
+Singleton getters pattern mirrors `getBrowserManager()`. `apify-client` wraps the official Apify REST API.
 
-```bash
-npm run db:migrate
-```
+**Next Recommended Task:** Integrate Apify into `CompanyCareerPageScraper`.
 
-You can inspect data with Prisma Studio:
+---
 
-```bash
-npm run db:studio
-```
+**Feature:** Apify Actor Integration into CompanyCareerPageScraper
 
-### 5. Run Backend
+**Files Added:**
+None.
 
-Start the backend in development mode:
+**Files Modified:**
+- `src/infrastructure/config/config.ts` (added `apify` schema block)
+- `src/infrastructure/apify/config.ts` (delegated to central config)
+- `src/infrastructure/apify/index.ts` (added singleton getters)
+- `src/scrapers/company-career-page-scraper.ts` (added `getMappedActorId()`, `scrapeWithApify()`)
 
-```bash
-npm run dev
-```
+**Architecture Impact:**
+`CompanyCareerPageScraper` now follows a 3-step fallback: ATS API → Apify Actor → Playwright. Actor is selected by matching company name or career page domain against `APIFY_ACTOR_MAPPING`.
 
-The API runs on:
+**Environment Changes:**
+- `APIFY_TOKEN` — Apify API token
+- `APIFY_ACTOR_MAPPING` — company/domain → actor ID mapping
 
-```text
-http://localhost:3000
-```
+**Notes:**
+Apify failure is caught and logged; falls back to Playwright without interrupting the run.
 
-Health check:
+**Next Recommended Task:** Add Crawlee as the second fallback (before Playwright).
 
-```bash
-curl http://localhost:3000/health
-```
+---
 
-Expected response:
+**Feature:** Crawlee Infrastructure Layer + CompanyCareerPageScraper Integration
 
-```json
-{ "status": "ok" }
-```
+**Files Added:**
+- `src/infrastructure/crawlee/crawlee-runner.ts`
+- `src/infrastructure/crawlee/index.ts`
 
-For production-style execution:
+**Files Modified:**
+- `package.json` (added `crawlee` dependency)
+- `src/infrastructure/config/config.ts` (added `crawlee` schema block)
+- `src/scrapers/company-career-page-scraper.ts` (added `scrapeWithCrawlee()`, Cheerio/Playwright extractors)
 
-```bash
-npm run build
-npm start
-```
+**Architecture Impact:**
+Full 4-step fallback chain now in place: ATS API → Apify Actor → Crawlee → Direct Playwright.
+`extractFromCheerio()` and `extractFromPlaywright()` are module-level pure functions — no state.
 
-### 6. Run Frontend
+**Environment Changes:**
+- `CRAWLEE_CRAWLER_TYPE` — `playwright` (default) or `cheerio`
+- `CRAWLEE_MAX_CONCURRENCY` — parallel requests inside Crawlee (default 5)
+- `CRAWLEE_MAX_RETRIES` — per-request retries inside Crawlee (default 3)
+- `PROXY_URL` — optional HTTP proxy for Crawlee
 
-The frontend is served by the same backend. After running `npm run dev`, open:
+**Notes:**
+Crawlee manages its own browser/session pool separately from `BrowserManager`. The two browser lifecycles do not interfere.
 
-```text
-http://localhost:3000
-```
+**Next Recommended Task:** Introduce `JobNormalizer` to standardize all scraper outputs.
 
-There is no separate frontend dev server in this MVP. Static UI files live in `public/`.
+---
 
-## CSV Format
+**Feature:** Reusable JobNormalizer
 
-Upload a CSV with company names and career page URLs.
+**Files Added:**
+- `src/domain/models/job-normalizer.ts`
 
-Example:
+**Files Modified:**
+- `src/domain/models/job.ts` (added `remote`, `employmentType`, `skills`, `experience` to interfaces)
+- `src/domain/scrapers/base-scraper.ts` (routes `buildJob` through `JobNormalizer.normalize`)
+- `src/application/job-matching-engine.ts` (uses `job.skills[]` and `job.experience` when present)
 
-```csv
-company,url
-Acme Careers,https://boards.greenhouse.io/acme
-Example Corp,https://jobs.lever.co/example
-Workday Company,https://company.wd1.myworkdayjobs.com/en-US/careers
-Ashby Startup,https://jobs.ashbyhq.com/startup
-```
+**Architecture Impact:**
+Normalization is now a domain-layer concern applied at the single `buildJob` boundary. All scrapers (ATS, Playwright, Apify, Crawlee) produce identical `Job` shapes without any per-scraper changes.
 
-The CSV parser also accepts rows without headers:
+**Environment Changes:**
+None.
 
-```csv
-Acme Careers,https://boards.greenhouse.io/acme
-Example Corp,https://jobs.lever.co/example
-```
+**Notes:**
+`JobNormalizer.normalize()` is idempotent and pure (no side effects). The 40-entry skills keyword list is embedded in the file and easy to extend.
 
-## How To Apply Filters From UI
+**Next Recommended Task:** Add scraping reliability (retries, rate limiting, circuit breaker).
 
-1. Open `http://localhost:3000`.
-2. Select your CSV file in the `Company CSV` field.
-3. Enter one or more roles in `Roles`, separated by commas.
+---
 
-```text
-Backend Engineer, Python Developer, Platform Engineer
-```
+**Feature:** Scraping Reliability — ReliableExecutor + BrowserManager Hardening
 
-4. Enter required skills in `Skills`, separated by commas.
+**Files Added:**
+- `src/infrastructure/scraping/reliable-executor.ts`
+- `screenshots/` directory (auto-created at runtime on first failure)
 
-```text
-Python, TypeScript, Playwright, PostgreSQL, AWS
-```
+**Files Modified:**
+- `src/infrastructure/browser/browser-manager.ts` (goto interception + failure screenshot)
 
-5. Enter preferred locations in `Locations`, separated by commas.
+**Architecture Impact:**
+`ReliableExecutor` is a global utility with process-singleton `CircuitBreaker` and `RateLimiter` keyed by hostname. All Playwright page navigations now pass through it automatically via the `page.goto()` intercept in `createPage()`. No application-layer changes.
 
-```text
-Remote, Pune, Bengaluru, New York
-```
+**Environment Changes:**
+None (all thresholds currently hardcoded: 3 retries, 45 s timeout, 1.5 s rate limit, 3-failure circuit trip, 30 s cooldown).
 
-6. Enter experience, for example:
+**Notes:**
+Screenshots are saved to `screenshots/failure-<unix-ts>.png`. Directory is created on first failure. No cleanup policy yet — see TODO.
 
-```text
-3 years
-```
+**Next Recommended Task:** Improve ScraperRunner concurrency.
 
-7. Set `Minimum Match %`, for example `70`.
-8. Enable `Remote only` if you only want remote-friendly roles.
-9. Click `Start`.
-10. Watch live progress in `Live Logs`.
-11. Review matched jobs in the results table.
-12. Click a job title to open the details modal.
-13. Use `CSV` or `Excel` to export matched jobs.
-14. Click `Stop` to request cancellation while a run is active.
+---
 
-## Matching Output
+**Feature:** ScraperRunner — Worker Pool, Queue, Cancellation, Progress Events
 
-The results table and export include:
+**Files Added:**
+None.
 
-| Column | Description |
-|--------|-------------|
-| Company | Company name from the uploaded CSV |
-| Job Title | Scraped job title |
-| Match Percentage | Overall weighted match score |
-| Matched Skills | Skills found in the job title or description |
-| Missing Skills | Requested skills not found |
-| Experience | Extracted experience signal when available |
-| Location | Scraped job location |
-| Job URL | Direct job posting URL |
-| Career Page | Source career page from the CSV |
-| Date Scraped | Timestamp when the job was scraped |
+**Files Modified:**
+- `src/infrastructure/config/config.ts` (added `scraper.concurrency` field)
+- `src/application/scraper-runner.ts` (full rewrite; all public APIs preserved)
 
-## Common Commands
+**Architecture Impact:**
+Behavior-extending, not behavior-replacing. `POST /scrape` still returns `ScrapeRunResult` unchanged.
+New additive exports: `RunOptions`, `ScraperStartEvent`, `ScraperDoneEvent`, `ScraperFailEvent`, `RunCompleteEvent`.
+`ScraperQueue` and worker pool are private implementation details.
 
-```bash
-npm run dev          # Run backend and frontend locally
-npm run build        # Compile TypeScript
-npm start            # Run compiled app from dist/
-npm run db:generate  # Generate Prisma client
-npm run db:push      # Push Prisma schema to database
-npm run db:migrate   # Create/apply Prisma migration
-npm run db:studio    # Open Prisma Studio
-```
+**Environment Changes:**
+- `SCRAPER_CONCURRENCY` — max parallel scrapers (default 2, max 20)
 
-## Troubleshooting
+**Notes:**
+`AbortSignal` cancellation is checked *between* scrapers, not mid-scraper, to keep repository writes consistent. `runner.events` is a Node.js `EventEmitter` — subscribe before calling `run()`.
 
-If the app fails with `DATABASE_URL is required`, check that `.env` exists and contains a PostgreSQL connection string.
-
-If scraping fails in browser mode, run:
-
-```bash
-npx playwright install chromium
-```
-
-If no jobs are returned from an ATS URL, confirm the company career URL is public and uses a supported ATS format. The scraper currently supports Greenhouse, Lever, Workday, and Ashby before falling back to browser scraping.
-
-The MVP includes a deterministic `sample-jobs` scraper so the runner and API can be tested without relying on a third-party website.
+**Next Recommended Task:**
+Expose `runner.events` via an SSE endpoint for live UI progress, or persist `remote`/`employmentType`/`skills`/`experience` fields to the database via a Prisma migration.

@@ -90,6 +90,19 @@ export class JobMatchingEngine {
       return { percentage: 100, matchedSkills: [], missingSkills: [] };
     }
 
+    if (job.skills && job.skills.length > 0) {
+      const jobSkillsLower = job.skills.map((s) => s.toLowerCase());
+      const matchedSkills = skills.filter((skill) =>
+        jobSkillsLower.includes(skill.toLowerCase()),
+      );
+      const missingSkills = skills.filter((skill) => !matchedSkills.includes(skill));
+      return {
+        percentage: Math.round((matchedSkills.length / skills.length) * 100),
+        matchedSkills,
+        missingSkills,
+      };
+    }
+
     const searchableText = normalize(
       [job.title, job.description, job.company].filter(Boolean).join(' '),
     );
@@ -111,12 +124,14 @@ export class JobMatchingEngine {
     const expectedYears = extractFirstNumber(experience);
 
     if (expectedYears === undefined) {
-      return normalize([job.title, job.description].join(' ')).includes(normalize(experience))
+      const searchSource = job.experience || [job.title, job.description].join(' ');
+      return normalize(searchSource).includes(normalize(experience))
         ? 100
         : 60;
     }
 
-    const jobYears = extractFirstNumber([job.title, job.description].join(' '));
+    const searchSource = job.experience || [job.title, job.description].join(' ');
+    const jobYears = extractFirstNumber(searchSource);
 
     if (jobYears === undefined) {
       return 70;

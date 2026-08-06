@@ -11,6 +11,12 @@ export interface Job {
   externalId?: string;
   postedAt?: Date;
   scrapedAt: Date;
+
+  // Normalized extension fields
+  remote?: boolean;
+  employmentType?: string;
+  skills?: string[];
+  experience?: string;
 }
 
 export interface CreateJobInput {
@@ -23,6 +29,12 @@ export interface CreateJobInput {
   source: string;
   externalId?: string;
   postedAt?: Date;
+
+  // Normalized extension fields
+  remote?: boolean;
+  employmentType?: string;
+  skills?: string[];
+  experience?: string;
 }
 
 function trimOptional(value: string | undefined): string | undefined {
@@ -63,6 +75,10 @@ export function createJob(input: CreateJobInput): Job {
     externalId: trimOptional(input.externalId),
     postedAt: input.postedAt,
     scrapedAt: new Date(),
+    remote: input.remote,
+    employmentType: trimOptional(input.employmentType),
+    skills: input.skills,
+    experience: trimOptional(input.experience),
   };
 }
 

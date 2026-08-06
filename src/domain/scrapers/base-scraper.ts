@@ -5,6 +5,7 @@ import {
   type CreateJobInput,
   type Job,
 } from '../models/job.js';
+import { JobNormalizer } from '../models/job-normalizer.js';
 
 export abstract class BaseScraper {
   abstract readonly name: string;
@@ -30,10 +31,11 @@ export abstract class BaseScraper {
   protected buildJob(
     input: Omit<CreateJobInput, 'source'>,
   ): Job {
-    return createJob({
+    const normalizedInput = JobNormalizer.normalize({
       ...input,
       source: this.name,
     });
+    return createJob(normalizedInput);
   }
 
   protected async goto(

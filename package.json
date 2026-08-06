@@ -16,10 +16,16 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "keywords": ["job-scraper", "playwright", "typescript"],
+  "keywords": [
+    "job-scraper",
+    "playwright",
+    "typescript"
+  ],
   "license": "MIT",
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "apify-client": "^2.24.0",
+    "crawlee": "^3.18.0",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "pino": "^9.14.0",
