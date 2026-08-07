@@ -42,4 +42,7 @@ python/*.pyc
 
 package-lock.json
 
-output
+data_folder/output/
+data_folder/plain_text_resume.yaml
+data_folder/secrets.yaml
+data_folder/work_preferences.yaml
