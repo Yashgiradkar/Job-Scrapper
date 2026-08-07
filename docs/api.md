@@ -12,6 +12,7 @@ This document provides details on all HTTP API endpoints exposed by the Job Scra
 | POST | `/scrape` | Run registered scrapers (`{ "scrapers": ["name"] }` optional) |
 | GET | `/jobs` | List persisted jobs (`source`, `page`, `pageSize` params) |
 | GET | `/jobs/:id` | Get one job by id |
+| GET | `/match/profile` | Return pre-filled search criteria from user YAML profile files |
 | POST | `/match/runs` | Start a CSV-driven company scrape + matching run |
 | GET | `/match/runs/:id` | Read run status, logs, metrics, matched jobs |
 | POST | `/match/runs/:id/stop` | Cancel an active run |
@@ -28,6 +29,26 @@ This document provides details on all HTTP API endpoints exposed by the Job Scra
 ```json
 {
   "status": "ok"
+}
+```
+
+---
+
+### 2. Get User Profile (Pre-fill Criteria)
+* **Path**: `GET /match/profile`
+* **Description**: Reads `data_folder/plain_text_resume.yaml` and `data_folder/work_preferences.yaml` to produce pre-filled search criteria. The frontend uses this to auto-populate all form fields on page load.
+* **Response**: `200 OK`
+```json
+{
+  "roles": ["Software engineer"],
+  "skills": ["NestJS", "Docker", "MongoDB", "Node.js", "Express.js", "React.js"],
+  "locations": ["Germany"],
+  "experience": "1.7 years",
+  "remote": true,
+  "minimumMatchPercentage": 70,
+  "companyBlacklist": ["wayfair", "Crossover"],
+  "titleBlacklist": ["word1", "word2"],
+  "locationBlacklist": ["Brazil"]
 }
 ```
 

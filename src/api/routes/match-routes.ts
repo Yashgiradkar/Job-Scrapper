@@ -7,6 +7,7 @@ import {
 } from '../../application/export/matched-jobs-exporter.js';
 import { ValidationError } from '../../domain/errors/app-error.js';
 import { asyncHandler } from '../middleware/async-handler.js';
+import { loadUserProfile } from '../../infrastructure/config/profile-loader.js';
 
 const matchRequestSchema = z.object({
   csv: z.string().optional(),
@@ -25,11 +26,27 @@ const matchRequestSchema = z.object({
     experience: z.string().trim().optional(),
     remote: z.boolean().optional(),
     minimumMatchPercentage: z.coerce.number().min(0).max(100).default(70),
+    companyBlacklist: z.array(z.string().trim().min(1)).default([]),
+    titleBlacklist: z.array(z.string().trim().min(1)).default([]),
+    locationBlacklist: z.array(z.string().trim().min(1)).default([]),
   }),
 });
 
 export function createMatchRouter(runManager: JobMatchRunManager): Router {
   const router = Router();
+
+  /**
+   * GET /match/profile
+   * Returns pre-filled search criteria loaded from plain_text_resume.yaml and work_preferences.yaml.
+   * The frontend uses this to auto-populate the search form on page load.
+   */
+  router.get(
+    '/profile',
+    asyncHandler(async (_request, response) => {
+      const profile = loadUserProfile();
+      response.json(profile.criteria);
+    }),
+  );
 
   router.post(
     '/runs',

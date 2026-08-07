@@ -41,3 +41,5 @@ python/*.pyc
 
 
 package-lock.json
+
+output

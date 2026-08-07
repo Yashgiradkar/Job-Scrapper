@@ -45,7 +45,8 @@ job-scraper-platform/
 │   │   ├── browser/
 │   │   │   └── browser-manager.ts        # Playwright browser pool + screenshot-on-failure
 │   │   ├── config/
-│   │   │   └── config.ts                 # Zod-validated env config (all sections)
+│   │   │   ├── config.ts                 # Zod-validated env config (all sections)
+│   │   │   └── profile-loader.ts         # Loads plain_text_resume.yaml + work_preferences.yaml → JobSearchCriteria
 │   │   ├── database/
 │   │   │   ├── prisma-client.ts
 │   │   │   ├── prisma-job-repository.ts

@@ -91,6 +91,11 @@ export class JobMatchService {
           await this.jobRepository.saveMany(jobs);
 
           for (const job of jobs) {
+            // Skip jobs matching any blacklist from work_preferences.yaml
+            if (this.isBlacklisted(job, request.criteria)) {
+              continue;
+            }
+
             const score = this.matchingEngine.match(job, request.criteria);
 
             if (score.overallMatchPercentage >= request.criteria.minimumMatchPercentage) {
@@ -141,6 +146,31 @@ export class JobMatchService {
   private async scrapeCompany(company: CompanyCareerPage): Promise<Job[]> {
     const scraper = new CompanyCareerPageScraper(company);
     return this.browserManager.withPage((page: Page) => scraper.run(page));
+  }
+
+  /**
+   * Returns true if the job should be excluded based on blacklists in work_preferences.yaml.
+   * Checks company name, job title keywords, and job location against the respective blacklists.
+   */
+  private isBlacklisted(job: import('../domain/models/job.js').Job, criteria: import('./job-matching-engine.js').JobSearchCriteria): boolean {
+    const { companyBlacklist = [], titleBlacklist = [], locationBlacklist = [] } = criteria;
+
+    const companyLower = job.company?.toLowerCase() ?? '';
+    if (companyBlacklist.some((b) => companyLower.includes(b.toLowerCase()))) {
+      return true;
+    }
+
+    const titleLower = job.title?.toLowerCase() ?? '';
+    if (titleBlacklist.some((b) => titleLower.includes(b.toLowerCase()))) {
+      return true;
+    }
+
+    const locationLower = job.location?.toLowerCase() ?? '';
+    if (locationBlacklist.some((b) => locationLower.includes(b.toLowerCase()))) {
+      return true;
+    }
+
+    return false;
   }
 
   private log(logs: string[], message: string): void {

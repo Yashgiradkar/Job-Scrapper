@@ -7,6 +7,10 @@ const state = {
   pageSize: 10,
   sortKey: 'matchPercentage',
   sortDirection: 'desc',
+  // Blacklists loaded from work_preferences.yaml via /match/profile
+  companyBlacklist: [],
+  titleBlacklist: [],
+  locationBlacklist: [],
 };
 
 const elements = {
@@ -53,6 +57,49 @@ elements.exportCsv.addEventListener('click', () => download(`/match/runs/${state
 elements.exportExcel.addEventListener('click', () => download(`/match/runs/${state.runId}/export.xls`));
 elements.closeModal.addEventListener('click', () => elements.modal.close());
 
+// Load profile from plain_text_resume.yaml + work_preferences.yaml and prefill form on page load
+void loadProfile();
+
+async function loadProfile() {
+  try {
+    const response = await fetch('/match/profile');
+    if (!response.ok) {
+      console.warn('Could not load user profile:', response.statusText);
+      return;
+    }
+    const profile = await response.json();
+
+    // Prefill form fields
+    if (Array.isArray(profile.roles) && profile.roles.length > 0) {
+      elements.roles.value = profile.roles.join(', ');
+    }
+    if (Array.isArray(profile.skills) && profile.skills.length > 0) {
+      elements.skills.value = profile.skills.join(', ');
+    }
+    if (Array.isArray(profile.locations) && profile.locations.length > 0) {
+      elements.locations.value = profile.locations.join(', ');
+    }
+    if (profile.experience) {
+      elements.experience.value = profile.experience;
+    }
+    if (profile.remote === true) {
+      elements.remote.checked = true;
+    }
+    if (typeof profile.minimumMatchPercentage === 'number') {
+      elements.minimumMatch.value = String(profile.minimumMatchPercentage);
+    }
+
+    // Store blacklists in state so they are sent with the match run
+    state.companyBlacklist = Array.isArray(profile.companyBlacklist) ? profile.companyBlacklist : [];
+    state.titleBlacklist = Array.isArray(profile.titleBlacklist) ? profile.titleBlacklist : [];
+    state.locationBlacklist = Array.isArray(profile.locationBlacklist) ? profile.locationBlacklist : [];
+
+    console.info('Profile loaded and form prefilled from YAML data.');
+  } catch (error) {
+    console.warn('Failed to load user profile:', error);
+  }
+}
+
 document.querySelectorAll('th[data-sort]').forEach((header) => {
   header.addEventListener('click', () => {
     const key = header.dataset.sort;
@@ -87,6 +134,10 @@ async function startRun() {
         experience: elements.experience.value || undefined,
         remote: elements.remote.checked ? true : undefined,
         minimumMatchPercentage: Number(elements.minimumMatch.value || 70),
+        // Include blacklists loaded from work_preferences.yaml
+        companyBlacklist: state.companyBlacklist,
+        titleBlacklist: state.titleBlacklist,
+        locationBlacklist: state.locationBlacklist,
       },
     }),
   });

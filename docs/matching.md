@@ -33,6 +33,33 @@ Weights are configurable in the environment config:
 
 ---
 
+## User Profile Auto-Loading
+
+The system reads user preferences and resume data from the `data_folder/` directory at runtime:
+
+| File | Purpose |
+|---|---|
+| `plain_text_resume.yaml` | Source of skills (aggregated from all `skills_acquired` lists in `experience_details`) and experience calculation (from `employment_period` fields). |
+| `work_preferences.yaml` | Source of target `positions`, `locations`, work-mode flags (`remote`, `hybrid`, `onsite`), and blacklists. |
+
+These values are exposed via `GET /match/profile` and the UI automatically populates all search criteria form fields on page load.
+
+---
+
+## Blacklist Filtering
+
+Before scoring, `JobMatchService` checks each scraped job against three optional blacklists sourced from `work_preferences.yaml`:
+
+| Blacklist Key | Yaml Field | Behaviour |
+|---|---|---|
+| `companyBlacklist` | `company_blacklist` | Excludes any job whose company name contains a blacklisted term (case-insensitive). |
+| `titleBlacklist` | `title_blacklist` | Excludes any job whose title contains a blacklisted keyword (case-insensitive). |
+| `locationBlacklist` | `location_blacklist` | Excludes any job whose location contains a blacklisted term (case-insensitive). |
+
+Blacklisted jobs are silently skipped — they are never scored or included in `results`. They are still counted in `jobsFound`.
+
+---
+
 ## CSV Upload Layout
 
 To run a match execution (`POST /match/runs`), clients upload a CSV configuration mapping companies to career pages:

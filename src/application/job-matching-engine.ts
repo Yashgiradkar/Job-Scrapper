@@ -8,6 +8,12 @@ export interface JobSearchCriteria {
   experience?: string;
   remote?: boolean;
   minimumMatchPercentage: number;
+  /** Companies to exclude from matched results (case-insensitive) */
+  companyBlacklist?: string[];
+  /** Keywords that, if present in a job title, exclude the job from results (case-insensitive) */
+  titleBlacklist?: string[];
+  /** Locations to exclude from matched results (case-insensitive) */
+  locationBlacklist?: string[];
 }
 
 export interface MatchScore {

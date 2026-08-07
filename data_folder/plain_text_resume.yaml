@@ -1,0 +1,132 @@
+personal_information:
+  name: "Yash"
+  surname: "Giradkar"
+  date_of_birth: "05/03/2002"
+  country: "India"
+  city: "Nagpur"
+  address: "Indira Nagar, Kanhan"
+  zip_code: "441401"
+  phone_prefix: "+91"
+  phone: "7030144323"
+  email: "yashgiradkar02@gmail.com"
+  github: "https://github.com/yashgiradkar"
+  linkedin: "https://www.linkedin.com/in/yashgiradkar"
+
+education_details:
+  - education_level: "B.Tech"
+    institution: "S. B. Jain Institute of Technology, Management & Research"
+    field_of_study: "Computer Science & Engineering"
+    final_evaluation_grade: ""
+    start_date: "July"
+    year_of_completion: "2024"
+    # exam:
+    #   exam_name_1: "[Grade]"
+    #   exam_name_2: "[Grade]"
+    #   exam_name_3: "[Grade]"
+    #   exam_name_4: "[Grade]"
+    #   exam_name_5: "[Grade]"
+    #   exam_name_6: "[Grade]"
+
+  - education_level: "Specialized in Software Development & Problem Solving"
+    institution: "Scaler"
+    field_of_study: "Software Development & Problem Solving"
+    # final_evaluation_grade: "[Your Final Evaluation Grade]"
+    # start_date: "[Start Date]"
+    year_of_completion: "Pursuing"
+    # exam:
+    #   exam_name_1: "[Grade]"
+
+experience_details:
+  - position: "Software Associate Level II"
+    company: "smartData Enterprises"
+    employment_period: "Sep 2024 - Present"
+    location: "Nagpur"
+    industry: "Insurance / Healthcare"
+    key_responsibilities:
+      - responsibility_1: "Developed and maintained a NestJS-based API Gateway, enabling secure, scalable routing, cross-service communication, Consul dynamic service discovery, and custom middleware."
+      - responsibility_2: "maintained and monitored distributed systems using Kibana"
+      - responsibility_3: "Executed seamless MongoDB migrations across services and developed complex backend data handling logic, including aggregation pipelines and conditional entity deletion."
+      - responsibility_4: "Developed a dynamic multi-step form in React.js featuring AWS SES-based email triggers and color-coded progress indicators."
+    skills_acquired:
+      - "NestJS"
+      - "Docker"
+      - "MongoDB"
+      - "Node.js"
+      - "Express.js"
+      - "React.js"
+      - "Kibana"
+      - "Consul"
+      - "AWS SES"
+
+  - position: "Web Developer Intern"
+    company: "Kaliba Enterprises Pvt. Ltd."
+    employment_period: "Jan 2024 - Jul 2024"
+    location: "Nagpur"
+    industry: "Software / Web Development"
+    key_responsibilities:
+      - responsibility_1: "Developed interactive, data-driven charts using Syncfusion."
+      - responsibility_2: "Styled responsive UI components with Tailwind CSS."
+      - responsibility_3: "Managed state efficiently across the app using React Context API and Hooks."
+    skills_acquired:
+      - "React.js"
+      - "Syncfusion"
+      - "Tailwind CSS"
+      - "React Context API"
+
+projects:
+  - name: "Email Newsletter Platform"
+    description: "Developed a web application using Next.js and TypeScript, integrating Jotai for state management, Clerk for authentication, AstraDB for storage, Stripe webhooks for pricing plans, and AWS SES for transactional emails."
+    link: "https://bytenewsletter.vercel.app/"
+
+achievements:
+  - name: "Hackathon / Competition Winner"
+    description: "Led the team to 1st place by pitching and presenting a unique, real-world solution with strong focus on problem discovery, product thinking and execution strategy."
+
+# certifications:
+#   - name: "[Certification Name]"
+#     description: "[Certification Description]"
+
+# languages:
+#   - language: "[Language]"
+#     proficiency: "[Proficiency Level]"
+
+# interests:
+#   - "[Interest]"
+
+availability:
+  notice_period: "30"
+
+salary_expectations:
+  salary_range_usd: "8-9LPA"
+
+self_identification:
+  gender: "Male"
+  pronouns: "He/Him"
+  veteran: "No"
+  disability: "No"
+  # ethnicity: "[Ethnicity]"
+legal_authorization:
+  eu_work_authorization: "No"
+  us_work_authorization: "No"
+  requires_us_visa: "Yes"
+  requires_us_sponsorship: "Yes"
+  requires_eu_visa: "Yes"
+  legally_allowed_to_work_in_eu: "No"
+  legally_allowed_to_work_in_us: "No"
+  requires_eu_sponsorship: "Yes"
+  canada_work_authorization: "No"
+  requires_canada_visa: "Yes"
+  legally_allowed_to_work_in_canada: "No"
+  requires_canada_sponsorship: "Yes"
+  uk_work_authorization: "No"
+  requires_uk_visa: "Yes"
+  legally_allowed_to_work_in_uk: "No"
+  requires_uk_sponsorship: "Yes"
+
+work_preferences:
+  remote_work: "Yes"
+  in_person_work: "Yes"
+  open_to_relocation: "Yes"
+  willing_to_complete_assessments: "Yes"
+  willing_to_undergo_drug_tests: "Yes"
+  willing_to_undergo_background_checks: "Yes"

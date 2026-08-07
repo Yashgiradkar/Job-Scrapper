@@ -9,6 +9,13 @@ and this project adheres to Semantic Versioning.
 
 ## [Unreleased]
 
+### Added
+- **User Profile Loader** (`src/infrastructure/config/profile-loader.ts`): New utility that parses `data_folder/plain_text_resume.yaml` and `data_folder/work_preferences.yaml` at runtime to produce a structured `JobSearchCriteria` object. Skills are aggregated across all experience entries; total experience is calculated from employment period date strings. Blacklists are read directly from `work_preferences.yaml`.
+- **`GET /match/profile` Endpoint**: Exposes the loaded user profile as a JSON response so the frontend can fetch it on page load.
+- **Form Autofill**: `public/app.js` now calls `GET /match/profile` on startup and populates all search form fields (Roles, Skills, Locations, Experience, Remote checkbox) with data from the YAML files automatically.
+- **Blacklist Filtering in `JobSearchCriteria`**: Added optional `companyBlacklist`, `titleBlacklist`, and `locationBlacklist` fields to the `JobSearchCriteria` interface.
+- **Blacklist Enforcement in `JobMatchService`**: The matching loop now calls `isBlacklisted()` before scoring each job. Jobs matching any blacklist are silently skipped and excluded from results.
+
 ---
 
 ## [0.1.0] - 2026-08-07
