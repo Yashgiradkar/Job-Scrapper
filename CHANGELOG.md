@@ -15,6 +15,19 @@ and this project adheres to Semantic Versioning.
 - **Form Autofill**: `public/app.js` now calls `GET /match/profile` on startup and populates all search form fields (Roles, Skills, Locations, Experience, Remote checkbox) with data from the YAML files automatically.
 - **Blacklist Filtering in `JobSearchCriteria`**: Added optional `companyBlacklist`, `titleBlacklist`, and `locationBlacklist` fields to the `JobSearchCriteria` interface.
 - **Blacklist Enforcement in `JobMatchService`**: The matching loop now calls `isBlacklisted()` before scoring each job. Jobs matching any blacklist are silently skipped and excluded from results.
+- **Job Auto-Application Flow** (`src/application/apply-job-service.ts`, `src/application/apply-job-session-store.ts`): Implemented Playwright automation to fill application form fields utilizing the candidate profile and preferences YAML data. Form automation is designed to navigate steps and pause on final review/preview page.
+- **Job Auto-Application Endpoints** (`src/api/routes/apply-routes.ts`): Created `POST /apply-job` to launch, fill, and preview applications, and `POST /apply-job/:sessionId/submit` to execute the final submission of a paused application.
+- **Application Error Handling** (`src/domain/errors/app-error.ts`): Added `ApplicationError` (status 422) for application automation failures.
+- **WorkflowContext** (`src/core/workflow/context.ts`): Runtime execution container holding the Playwright Page, candidate profile, key-value variable store, and WorkflowLogger.
+- **WorkflowState** (`src/core/workflow/state.ts`): Tracks execution status, current step index, and named checkpoints enabling resume-from-checkpoint behaviour.
+- **WorkflowStep / BaseWorkflowStep** (`src/core/workflow/step.ts`): Interface + abstract base every step implements: execute(), rollback(), validate(), retry(), timeout().
+- **WorkflowRegistry** (`src/core/workflow/registry.ts`): Static name → StepConstructor registry; steps self-register via side-effect import.
+- **WorkflowExecutor** (`src/core/workflow/executor.ts`): Sequentially executes steps with per-step timeouts, auto-retries, failure screenshots, and reverse rollback chain on fatal errors.
+- **WorkflowFactory / WorkflowBuilder** (`src/core/workflow/factory.ts`): Parses a JSON workflow definition into a typed WorkflowStep[] array; imperative builder alternative also provided.
+- **WorkflowValidator** (`src/core/workflow/validator.ts`): Zod-based JSON schema validation for workflow definitions with registered-step lookup.
+- **WorkflowLogger** (`src/core/workflow/logger.ts`): Structured logging via pino with in-memory accumulation, per-step metrics, and automatic screenshot capture.
+- **Built-in Reusable Steps** (`src/core/workflow/steps/`): OpenPage, Click, FillText, SelectDropdown, CheckCheckbox, SelectRadio, UploadFile, Scroll, Wait, Screenshot, SetVariable, If (conditional branching with elementExists/variableEquals/urlContains), Loop (iteration with configurable break conditions).
+
 
 ---
 

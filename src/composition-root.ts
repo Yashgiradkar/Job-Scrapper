@@ -2,6 +2,7 @@ import { ScraperRunner } from './application/scraper-runner.js';
 import { JobMatchingEngine } from './application/job-matching-engine.js';
 import { JobMatchService } from './application/job-match-service.js';
 import { JobMatchRunManager } from './application/job-match-run-manager.js';
+import { ApplyJobService } from './application/apply-job-service.js';
 import { createScraperRegistry } from './domain/scrapers/scraper-registry.js';
 import { createApp } from './api/app.js';
 import { getBrowserManager } from './infrastructure/browser/browser-manager.js';
@@ -24,10 +25,12 @@ export function createApplication() {
     matchingEngine,
   );
   const jobMatchRunManager = new JobMatchRunManager(jobMatchService);
+  const applyJobService = new ApplyJobService();
 
   return createApp({
     jobRepository,
     scraperRunner,
     jobMatchRunManager,
+    applyJobService,
   });
 }

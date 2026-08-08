@@ -71,6 +71,16 @@ export class ScraperError extends AppError {
   }
 }
 
+export class ApplicationError extends AppError {
+  constructor(message: string, cause?: unknown) {
+    super(message, {
+      statusCode: 422,
+      code: 'APPLICATION_ERROR',
+      cause,
+    });
+  }
+}
+
 export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
 }

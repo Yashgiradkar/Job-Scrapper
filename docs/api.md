@@ -18,6 +18,8 @@ This document provides details on all HTTP API endpoints exposed by the Job Scra
 | POST | `/match/runs/:id/stop` | Cancel an active run |
 | GET | `/match/runs/:id/export.csv` | Export matched jobs as CSV |
 | GET | `/match/runs/:id/export.xls` | Export matched jobs as Excel-compatible HTML |
+| POST | `/apply-job` | Fill application form fields for a given job URL and pause at preview stage |
+| POST | `/apply-job/:sessionId/submit` | Confirm and execute final submission of the job application |
 
 ---
 
@@ -183,3 +185,51 @@ This document provides details on all HTTP API endpoints exposed by the Job Scra
   - `GET /match/runs/:id/export.csv`
   - `GET /match/runs/:id/export.xls`
 * **Response**: Binary file download streams (CSV text or spreadsheet content type).
+
+---
+
+## Job Auto-Application (Playwright Automation)
+
+### 9. Autofill Application (Stop at Preview)
+* **Path**: `POST /apply-job`
+* **Request Body**:
+```json
+{
+  "jobUrl": "https://example.com/job/123"
+}
+```
+* **Response**: `200 OK`
+```json
+{
+  "sessionId": "run-uuid-string",
+  "status": "ready_for_review",
+  "previewScreenshotUrl": "/preview-run-uuid-string.png",
+  "pageTitle": "Senior Software Engineer at Example Company",
+  "currentUrl": "https://example.com/job/123/apply/review",
+  "logs": [
+    "Starting application flow...",
+    "Navigating to job page...",
+    "Loaded candidate profile...",
+    "Filling input first name with Yash",
+    "Uploading resume file...",
+    "Clicking Next step button...",
+    "Detected review/preview page. Stopping application flow before final submission."
+  ]
+}
+```
+
+### 10. Confirm and Submit Application
+* **Path**: `POST /apply-job/:sessionId/submit`
+* **Response**: `200 OK`
+```json
+{
+  "status": "submitted",
+  "logs": [
+    "...previous logs...",
+    "Initiating final submission for session...",
+    "Clicking submit button matching: button:has-text(\"Submit\")",
+    "Waiting for submission to complete...",
+    "Application submitted successfully"
+  ]
+}
+```

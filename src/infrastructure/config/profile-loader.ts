@@ -10,6 +10,82 @@ export interface UserProfileData {
   criteria: JobSearchCriteria;
 }
 
+export interface RawResume {
+  personal_information: {
+    name: string;
+    surname: string;
+    date_of_birth?: string;
+    country?: string;
+    city?: string;
+    address?: string;
+    zip_code?: string;
+    phone_prefix?: string;
+    phone?: string;
+    email: string;
+    github?: string;
+    linkedin?: string;
+  };
+  education_details?: Array<{
+    education_level?: string;
+    institution?: string;
+    field_of_study?: string;
+    final_evaluation_grade?: string;
+    start_date?: string;
+    year_of_completion?: string;
+  }>;
+  experience_details?: Array<{
+    position?: string;
+    company?: string;
+    employment_period?: string;
+    location?: string;
+    industry?: string;
+    key_responsibilities?: Record<string, string>[];
+    skills_acquired?: string[];
+  }>;
+  projects?: Array<{ name?: string; description?: string; link?: string }>;
+  achievements?: Array<{ name?: string; description?: string }>;
+  availability?: { notice_period?: string };
+  salary_expectations?: { salary_range_usd?: string };
+  self_identification?: {
+    gender?: string;
+    pronouns?: string;
+    veteran?: string;
+    disability?: string;
+    ethnicity?: string;
+  };
+  legal_authorization?: Record<string, string>;
+  work_preferences?: {
+    remote_work?: string;
+    in_person_work?: string;
+    open_to_relocation?: string;
+    willing_to_complete_assessments?: string;
+    willing_to_undergo_drug_tests?: string;
+    willing_to_undergo_background_checks?: string;
+  };
+}
+
+/**
+ * Returns the full raw parsed resume object from plain_text_resume.yaml.
+ * Used by ApplyJobService to map all fields to application form inputs.
+ */
+export function loadRawResume(): RawResume {
+  const dataDir = path.resolve(process.cwd(), 'data_folder');
+  const resumePath = path.join(dataDir, 'plain_text_resume.yaml');
+
+  if (!fs.existsSync(resumePath)) {
+    throw new Error(`Resume file not found at: ${resumePath}`);
+  }
+
+  const raw = yaml.load(fs.readFileSync(resumePath, 'utf8'));
+
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('Invalid resume YAML structure');
+  }
+
+  return raw as RawResume;
+}
+
+
 export function loadUserProfile(): UserProfileData {
   try {
     const dataDir = path.resolve(process.cwd(), 'data_folder');

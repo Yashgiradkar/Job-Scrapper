@@ -13,7 +13,8 @@ job-scraper-platform/
 │   │   ├── routes/
 │   │   │   ├── scrape-routes.ts          # POST /scrape
 │   │   │   ├── match-routes.ts           # /match/runs/*
-│   │   │   └── job-routes.ts             # GET /jobs, /jobs/:id
+│   │   │   ├── job-routes.ts             # GET /jobs, /jobs/:id
+│   │   │   └── apply-routes.ts           # POST /apply-job, /apply-job/:sessionId/submit
 │   │   ├── middleware/
 │   │   │   ├── error-handler.ts
 │   │   │   ├── async-handler.ts
@@ -25,10 +26,13 @@ job-scraper-platform/
 │   │   ├── job-match-service.ts          # CSV-driven company matching run
 │   │   ├── job-matching-engine.ts        # Weighted scoring engine
 │   │   ├── job-match-run-manager.ts      # Run lifecycle manager
+│   │   ├── apply-job-service.ts          # Playwright form autofill automation
+│   │   ├── apply-job-session-store.ts    # In-memory browser session manager (10 min TTL)
 │   │   ├── export/
 │   │   │   └── matched-jobs-exporter.ts  # CSV / XLS export
 │   │   └── ports/
 │   │       └── job-repository.ts         # Repository interface (port)
+
 │   │
 │   ├── domain/                           # Core business logic — no external deps
 │   │   ├── models/
