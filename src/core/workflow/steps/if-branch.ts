@@ -24,16 +24,18 @@ export class IfBranchStep extends BaseWorkflowStep {
 
   async execute(context: WorkflowContext): Promise<void> {
     const conditionMet = await this.evaluateCondition(context);
-    context.logger.info(this.name, `Condition "${this.config.condition}" evaluated to: ${conditionMet}`);
+    context.logger.info(this.name, `Condition evaluated to: ${conditionMet}`);
 
-    const branch: unknown[] | undefined = conditionMet ? this.config.then : this.config.else;
+    const rawBranch: unknown[] | undefined = conditionMet
+      ? (this.config.thenSteps || this.config.then)
+      : (this.config.elseSteps || this.config.else);
 
-    if (!branch || branch.length === 0) {
+    if (!rawBranch || rawBranch.length === 0) {
       context.logger.info(this.name, `No steps defined for branch (${conditionMet ? 'then' : 'else'}), skipping`);
       return;
     }
 
-    const branchSteps = WorkflowFactory.create({ name: 'branch', steps: branch });
+    const branchSteps = WorkflowFactory.fromJSON(rawBranch as Array<Record<string, any>>);
     const branchState = new WorkflowState(randomUUID());
     const executor = new WorkflowExecutor();
     const result = await executor.execute(context, branchSteps, branchState);
@@ -45,6 +47,21 @@ export class IfBranchStep extends BaseWorkflowStep {
 
   private async evaluateCondition(context: WorkflowContext): Promise<boolean> {
     const { condition, selector, variable, equals, contains } = this.config;
+
+    if (typeof condition === 'object' && condition !== null) {
+      if (condition.variableEquals) {
+        return context.getVariable(condition.variableEquals.key) === condition.variableEquals.value;
+      }
+      if (condition.elementExists) {
+        return (await context.page.locator(condition.elementExists).count()) > 0;
+      }
+      if (condition.elementVisible) {
+        return context.page.locator(condition.elementVisible).isVisible();
+      }
+      if (condition.urlContains) {
+        return context.page.url().includes(condition.urlContains);
+      }
+    }
 
     switch (condition) {
       case 'elementExists':
@@ -60,9 +77,15 @@ export class IfBranchStep extends BaseWorkflowStep {
         return context.page.url().includes(contains);
 
       default:
-        throw new Error(`IfBranch step: Unknown condition "${condition}"`);
+        throw new Error(`IfBranch step: Unknown condition "${JSON.stringify(condition)}"`);
     }
   }
 }
 
+export const IfStep = IfBranchStep;
+
 WorkflowRegistry.register('If', IfBranchStep);
+WorkflowRegistry.register('if', IfBranchStep);
+WorkflowRegistry.register('IfStep', IfBranchStep);
+WorkflowRegistry.register('IfBranch', IfBranchStep);
+

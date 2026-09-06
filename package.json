@@ -5,7 +5,7 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
-    "test": "tsx --test \"src/**/__tests__/**/*.test.ts\"",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "start": "node dist/main.js",
     "dev": "tsx watch src/main.ts",
     "db:generate": "prisma generate",
