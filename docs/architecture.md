@@ -8,6 +8,8 @@ This document describes the codebase structure, layer responsibilities, dependen
 
 ```
 job-scraper-platform/
+├── database/
+│   └── schema.sql                        # Production PostgreSQL relational schema (23 tables, views, triggers)
 ├── src/
 │   ├── api/                              # HTTP layer (Express routes & middleware)
 │   │   ├── routes/
@@ -44,6 +46,15 @@ job-scraper-platform/
 │   │   │   └── scraper-registry.ts       # Name → BaseScraper registry
 │   │   └── errors/
 │   │       └── app-error.ts
+│   │
+│   ├── core/                             # Automation Engine Core Modules
+│   │   └── discovery/                    # Phase -2: Autonomous Discovery & Reverse-Engineering Engine
+│   │       ├── types.ts                  # Zod schemas & discovery telemetry types
+│   │       ├── errors.ts                 # Discovery error hierarchy
+│   │       ├── interfaces/               # ISP & DIP contracts
+│   │       ├── analyzers/                # Network, DOM, RSS, Anti-Bot analyzers
+│   │       ├── generators/               # Scaffold & workflow generators
+│   │       └── engine/                   # DiscoveryEngine facade orchestrator
 │   │
 │   ├── infrastructure/                   # External integrations
 │   │   ├── browser/

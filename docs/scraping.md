@@ -58,6 +58,19 @@ When career page URLs match supported Applicant Tracking Systems (ATS), we bypas
 
 ---
 
+## Discovery Engine (Phase -2)
+
+The Discovery Engine (`src/core/discovery/`) automatically reverse-engineers any target website without hardcoded rules. It inspects:
+1. **Network Interception**: Automatically detects REST API endpoints, GraphQL queries/mutations, XHR vs Fetch distinctions, session/security/tracking cookies, and authentication mechanisms (Bearer tokens, API keys, CSRF tokens).
+2. **DOM & Content Rendering**: Distinguishes SSR vs CSR vs Hybrid hydration (Next.js, Nuxt, Remix, React, Angular, Vue), extracts multi-candidate selector hierarchies with confidence metrics.
+3. **Syndication Feeds**: Discovers and validates RSS 2.0 and Atom feeds through HTML `<link>` tags and canonical probe endpoints.
+4. **Interaction & Navigation**: Tests pagination controls (next/prev, numbered, load more) and simulates scroll depth to verify DOM growth via infinite scroll.
+5. **Anti-Bot Fingerprinting**: Evaluates traffic and challenge pages for Cloudflare (Turnstile/Challenge), DataDome, PerimeterX / HUMAN, Akamai Bot Manager, AWS WAF, and Imperva.
+6. **Apply Workflow & Resume Upload**: Detects file input elements (`input[type="file"]`, dropzones), allowed file types (`.pdf`, `.doc`, `.docx`), apply modals, and external ATS redirect destinations.
+7. **Artifact Synthesis**: Emits typed TypeScript plugin scaffolds, JSON workflow definitions, selector fallback maps, and Markdown technical audit reports.
+
+---
+
 ## Apify Actor Integration
 
 When an Apify mapping is defined under `APIFY_ACTOR_MAPPING`, `CompanyCareerPageScraper` triggers a remote actor instead of local crawling:

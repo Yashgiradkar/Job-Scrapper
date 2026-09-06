@@ -45,3 +45,15 @@ This document contains a historical ledger of design and architectural decisions
 * **Status**: Approved
 * **Context**: A single carrier site failing (due to anti-bot walls or maintenance) should not stop scraping operations across unaffected companies.
 * **Decision**: The circuit breaker is mapped globally using a map keyed by URL hostname. Failure rates trip breaker status on a per-domain basis.
+
+### AD-9: Comprehensive Relational Schema for Job Matching & Automation
+* **Status**: Approved
+* **Context**: Job aggregation, multi-user auto-apply workflows, resume ATS matching, session persistence, and status funnel analytics require strict relational constraints, audit trails, and multi-tenant partitioning.
+* **Decision**: Standardize on a normalized PostgreSQL 14+ schema (`database/schema.sql`) covering 23 core entities, custom enums, trigger-driven `updated_at` and application status auditing, monthly range partitioning for high-throughput automation logs, and materialized reporting views.
+
+### AD-10: Autonomous Discovery Engine for Target Site Reverse-Engineering
+* **Status**: Approved
+* **Context**: The platform must onboard arbitrary career portals, job boards, and company career sites without manual inspection or hardcoded assumptions regarding backend technologies, anti-bot mitigations, or form structures.
+* **Decision**: Implement a decoupled Discovery Engine (`src/core/discovery/`) adhering to Hexagonal Architecture and SOLID principles. The engine isolates network traffic analysis (REST vs GraphQL vs XHR/Fetch), DOM rendering analysis (SSR vs CSR vs Hybrid), anti-bot fingerprinting (Cloudflare, DataDome, PerimeterX, Akamai, AWS WAF), RSS/Atom syndication detection, pagination/infinite-scroll behavior, and apply/resume upload detection behind dedicated interfaces. It synthesizes findings into four production artifacts: a typed TypeScript plugin scaffold, an executable JSON workflow, a selector fallback map, and an audit document.
+
+
